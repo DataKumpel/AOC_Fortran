@@ -9,7 +9,7 @@ end module point_class
 program main
     implicit none
     !=========================================================================!
-    logical :: test = .true.
+    logical :: test = .false.
     !=========================================================================!
     
     if(test) then
@@ -44,70 +44,30 @@ subroutine move_point(p, dir)
 end subroutine move_point
 
 
-subroutine follow_point(p_first, p_follow, dir, dir_new)
+subroutine follow_point(head, tail)
     use point_class
     implicit none
     !=========================================================================!
-    type(point), intent(in) :: p_first
-    type(point), intent(inout) :: p_follow
-    character, intent(in) :: dir
-    character, intent(out) :: dir_new
+    type(point), intent(in) :: head
+    type(point), intent(inout) :: tail
     !-------------------------------------------------------------------------!
     type(point) :: dist
     !=========================================================================!
     
-    dist%x = p_first%x - p_follow%x
-    dist%y = p_first%y - p_follow%y
-    
-    write(*, *) "Dist:", dist
+    dist%x = head%x - tail%x
+    dist%y = head%y - tail%y
     
     if(abs(dist%x) > 1 .or. abs(dist%y) > 1) then
-        select case(dir)
-            case("U")
-                p_follow%x = p_first%x
-                p_follow%y = p_first%y - 1
-                select case(dist%x)
-                    case(1)
-                        dir_new = "R"
-                    case(-1)
-                        dir_new = "L"
-                    case default
-                        dir_new = dir
-                end select
-            case("D")
-                p_follow%x = p_first%x
-                p_follow%y = p_first%y + 1
-                select case(dist%x)
-                    case(1)
-                        dir_new = "R"
-                    case(-1)
-                        dir_new = "L"
-                    case default
-                        dir_new = dir
-                end select
-            case("L")
-                p_follow%x = p_first%x + 1
-                p_follow%y = p_first%y
-                select case(dist%y)
-                    case(1)
-                        dir_new = "U"
-                    case(-1)
-                        dir_new = "D"
-                    case default
-                        dir_new = dir
-                end select
-            case("R")
-                p_follow%x = p_first%x - 1
-                p_follow%y = p_first%y
-                select case(dist%y)
-                    case(1)
-                        dir_new = "U"
-                    case(-1)
-                        dir_new = "D"
-                    case default
-                        dir_new = dir
-                end select
-        end select
+        if(abs(dist%x) > abs(dist%y)) then
+            tail%x = tail%x + dist%x - dist%x / abs(dist%x)
+            tail%y = head%y
+        else if(abs(dist%x) < abs(dist%y)) then
+            tail%x = head%x
+            tail%y = tail%y + dist%y - dist%y / abs(dist%y)
+        else
+            tail%x = tail%x + dist%x - dist%x / abs(dist%x)
+            tail%y = tail%y + dist%y - dist%y / abs(dist%y)
+        endif
     endif
 end subroutine follow_point
 
@@ -120,11 +80,12 @@ subroutine alloc_vis_map(filename, vis_map)
     integer, dimension(:, :), allocatable, intent(inout) :: vis_map
     !-------------------------------------------------------------------------!
     type(point) :: head = point(1, 1)
-    character :: dir, dummy
+    character :: dir
     integer :: amount
     integer :: min_x = 1, max_x = 1
     integer :: min_y = 1, max_y = 1
     integer :: nunit = 20
+    integer :: safety_offset = 5
     integer :: iostatus
     integer :: i
     !=========================================================================!
@@ -146,10 +107,10 @@ subroutine alloc_vis_map(filename, vis_map)
     enddo
     
     ! Safety frame:
-    min_x = min_x - 1
-    min_y = min_y - 1
-    max_x = max_x + 1
-    max_y = max_y + 1
+    min_x = min_x - safety_offset
+    min_y = min_y - safety_offset
+    max_x = max_x + safety_offset
+    max_y = max_y + safety_offset
     
     allocate(vis_map(min_x:max_x, min_y:max_y))
     vis_map(:, :) = 0
@@ -186,10 +147,6 @@ subroutine challenge_part_i(filename)
     end interface
     !=========================================================================!
     
-    
-    
-    ! allocate(vis_map(-200:200, -200:200))
-    ! vis_map(:, :) = 0
     call alloc_vis_map(filename, vis_map)
     
     open(nunit, file=filename, action="read", status="old")
@@ -199,14 +156,14 @@ subroutine challenge_part_i(filename)
         
         steps: do i = 1, amount
             call move_point(head, dir)
-            call follow_point(head, tail, dir, dummy)
+            call follow_point(head, tail)
             
             !write(*, "(I0, A3, I5, I5)") counter, "T", tail%x, tail%y
             vis_map(tail%x, tail%y) = 1
         enddo steps
     enddo
     
-    call print_map(vis_map)
+    ! call print_map(vis_map)
     write(*, "(A, I0)") "Part I: Number of visited points: ", sum(vis_map)
     
     deallocate(vis_map)
@@ -223,7 +180,6 @@ subroutine challenge_part_ii(filename)
     type(point) :: head = point(1, 1)
     type(point), dimension(:), allocatable :: rope
     character :: dir
-    character :: next_dir
     integer :: nunit = 20
     integer :: i, j
     integer :: iostatus
@@ -255,18 +211,17 @@ subroutine challenge_part_ii(filename)
         
         steps: do i = 1, amount
             call move_point(head, dir)
-            call follow_point(head, rope(1), dir, next_dir)
+            call follow_point(head, rope(1))
             
             rope_follow: do j = 2, num_segments
-                dir = next_dir
-                call follow_point(rope(j - 1), rope(j), dir, next_dir)
+                call follow_point(rope(j - 1), rope(j))
             enddo rope_follow
-            write(*, "(A, I5, I5)") "T", rope(:)
+            
             vis_map(rope(num_segments)%x, rope(num_segments)%y) = 1
         enddo steps
     enddo simulation
     
-    call print_map(vis_map)
+    ! call print_map(vis_map)
     write(*, "(A, I0)") "Part II: Number of visited points: ", sum(vis_map)
     
     deallocate(rope)
