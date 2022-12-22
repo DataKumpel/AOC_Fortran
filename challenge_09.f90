@@ -10,8 +10,10 @@ program main
     implicit none
     !=========================================================================!
     logical :: test = .false.
+    real :: t_start, t_end
     !=========================================================================!
     
+    call cpu_time(t_start)
     if(test) then
         call challenge_part_i("input_09_test_p1.txt")
         call challenge_part_ii("input_09_test_p2.txt")
@@ -19,6 +21,9 @@ program main
         call challenge_part_i("input_09.txt")
         call challenge_part_ii("input_09.txt")
     endif
+    call cpu_time(t_end)
+    
+    write(*, "(A, F10.8)") "Exec time: ", t_end - t_start, "s"
     
 end program main
 
@@ -128,7 +133,6 @@ subroutine challenge_part_i(filename)
     type(point) :: head = point(1, 1)
     type(point) :: tail = point(1, 1)
     character :: dir
-    character :: dummy
     integer :: nunit = 20
     integer :: amount
     integer :: i
