@@ -1,3 +1,25 @@
+module sprite_class
+    type sprite
+        integer :: lpos
+        integer :: upos
+    contains
+        procedure :: move_to
+    end type sprite
+
+contains
+    subroutine move_to(this, ipos)
+        implicit none
+        !=====================================================================!
+        class(sprite) :: this
+        integer :: ipos
+        !=====================================================================!
+        
+        this%lpos = ipos
+        this%upos = ipos + 2
+    end subroutine move_to
+end module sprite_class
+
+
 program main
     implicit none
     !=========================================================================!
@@ -6,8 +28,10 @@ program main
     
     if(test) then
         call challenge_part_i("input_10_test.txt")
+        call challenge_part_ii("input_10_test.txt")
     else
         call challenge_part_i("input_10.txt")
+        call challenge_part_ii("input_10.txt")
     endif
     
 end program main
@@ -18,22 +42,99 @@ subroutine challenge_part_i(filename)
     !=========================================================================!
     character(len=*), intent(in) :: filename
     !-------------------------------------------------------------------------!
-    character(len=20) :: line
-    character(len=4) :: instr
-    integer :: ivalue
-    integer :: cycles = 1
-    integer :: xregister = 1
-    integer :: nunit = 20
-    integer :: iostatus
     integer :: i
     integer :: signal_sum = 0
     integer, dimension(:), allocatable :: cycle_stack
+    !-------------------------------------------------------------------------!
+    interface
+        subroutine fill_cycle_stack(filename, cycle_stack)
+            character(len=*), intent(in) :: filename
+            integer, dimension(:), allocatable, intent(inout) :: cycle_stack
+        end subroutine fill_cycle_stack
+    end interface
     !=========================================================================!
     
+    call fill_cycle_stack(filename, cycle_stack)
+    
+    do i = 20, ubound(cycle_stack, 1), 40
+        write(*, *) i, cycle_stack(i), i * cycle_stack(i)
+        signal_sum = signal_sum + i * cycle_stack(i)
+    enddo
+    
+    write(*, "(A, I0)") "Part I: Signal strength sum: ", signal_sum
+    
+    deallocate(cycle_stack)
+end subroutine challenge_part_i
+
+
+subroutine challenge_part_ii(filename)
+    use sprite_class
+    implicit none
+    !=========================================================================!
+    character(len=*), intent(in) :: filename
+    !-------------------------------------------------------------------------!
+    type(sprite) :: spr
+    character, dimension(40, 6) :: crt_screen
+    integer, dimension(:), allocatable :: cycle_stack
+    integer :: cycles
+    integer :: crt_row = 1
+    integer :: crt_col = 1
+    !-------------------------------------------------------------------------!
+    interface
+        subroutine fill_cycle_stack(filename, cycle_stack)
+            character(len=*), intent(in) :: filename
+            integer, dimension(:), allocatable, intent(inout) :: cycle_stack
+        end subroutine fill_cycle_stack
+    end interface
+    !=========================================================================!
+    
+    call fill_cycle_stack(filename, cycle_stack)
+    
+    write(*, "(A)") "Part II:"
+    do cycles = 1, ubound(cycle_stack, 1)
+        call spr%move_to(cycle_stack(cycles))
+        
+        if(mod(cycles, 40) >= spr%lpos .and. &
+          &mod(cycles, 40) <= spr%upos) then
+            crt_screen(crt_col, crt_row) = "#"
+        else
+            crt_screen(crt_col, crt_row) = "."
+        endif
+        crt_col = crt_col + 1
+        
+        if(mod(cycles, 40) == 0) then
+            write(*, *) crt_screen(:, crt_row)
+            crt_row = crt_row + 1
+            crt_col = 1
+        endif
+    enddo
+    
+    deallocate(cycle_stack)
+    
+end subroutine challenge_part_ii
+
+
+subroutine fill_cycle_stack(filename, cycle_stack)
+    implicit none
+    !=========================================================================!
+    character(len=*), intent(in) :: filename
+    integer, dimension(:), allocatable, intent(inout) :: cycle_stack
+    !-------------------------------------------------------------------------!
+    character(len=20) :: line
+    integer :: nunit = 20
+    integer :: iostatus
+    integer :: ivalue
+    integer :: xregister
+    integer :: cycles
+    !=========================================================================!
+    
+    allocate(cycle_stack(240))
+    
+    cycles = 1
+    xregister = 1
+    cycle_stack(1) = 1
+    
     open(nunit, file=filename, action="read", status="old")
-    
-    allocate(cycle_stack(250))
-    
     do
         read(nunit, "(A)", iostat=iostatus) line
         if(iostatus /= 0) exit
@@ -47,17 +148,8 @@ subroutine challenge_part_i(filename)
         endif
         cycle_stack(cycles) = xregister
     enddo
-    
-    do i = 20, 250, 40
-        write(*, *) i, cycle_stack(i), i * cycle_stack(i)
-        signal_sum = signal_sum + i * cycle_stack(i)
-    enddo
-    
-    write(*, *) "Signal strength sum: ", signal_sum
-    
-    deallocate(cycle_stack)
     close(nunit)
-end subroutine challenge_part_i
+end subroutine fill_cycle_stack
 
 
 subroutine addx(v, xregister, cycles)
