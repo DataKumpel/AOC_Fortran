@@ -1,11 +1,22 @@
+COMPILER = gfortran
+FLAGS = -g -std=f2008 -Wall
+CH_08 = ./build/ch_08.exe
+CH_09 = ./build/ch_09.exe
+CH_10 = ./build/ch_10.exe
+
+all:
+	$(COMPILER) ./src/challenge_08.f90 -o $(CH_08) $(FLAGS)
+	$(COMPILER) ./src/challenge_09.f90 -o $(CH_09) $(FLAGS)
+	$(COMPILER) ./src/challenge_10.f90 -o $(CH_10) $(FLAGS)
+
 day8:
-	gfortran challenge_08.f90 -o ch_08.exe -g -std=f2008 -Wall
-	./ch_08.exe
+	$(COMPILER) ./src/challenge_08.f90 -o $(CH_08) $(FLAGS)
+	$(CH_08)
 
 day9:
-	gfortran challenge_09.f90 -o ch_09.exe -g -std=f2008 -Wall
-	./ch_09.exe
+	$(COMPILER) ./src/challenge_09.f90 -o $(CH_09) $(FLAGS)
+	$(CH_09)
 
 day10:
-	gfortran challenge_10.f90 -o ch_10.exe -g -std=f2008 -Wall
-	./ch_10.exe
+	$(COMPILER) ./src/challenge_10.f90 -o $(CH_10) $(FLAGS)
+	$(CH_10)
